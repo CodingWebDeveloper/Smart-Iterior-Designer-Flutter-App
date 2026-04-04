@@ -1,13 +1,41 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/room_provider.dart';
-import 'details_screen.dart';
+import 'catalog_list_screen.dart';
+import 'my_rooms_view.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Widget _buildRoomImage(
+    String path, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    if (kIsWeb) {
+      return Image.network(
+        path,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+      );
+    }
+    return Image.file(File(path), width: width, height: height, fit: fit);
+  }
 
   void _showAddRoomDialog(BuildContext context) {
     final TextEditingController controller = TextEditingController();
+    XFile? pickedImage;
     bool isValid = false;
 
     showDialog(
@@ -17,17 +45,60 @@ class HomeScreen extends StatelessWidget {
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Add New Room'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  hintText: 'Enter room name',
-                  border: OutlineInputBorder(),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter room name',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          isValid = value.trim().isNotEmpty;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(
+                          source: ImageSource.gallery,
+                        );
+                        setState(() {
+                          pickedImage = image;
+                        });
+                      },
+                      child: Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: pickedImage == null
+                            ? const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('Add a photo (optional)'),
+                                ],
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: _buildRoomImage(
+                                  pickedImage!.path,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    isValid = value.trim().isNotEmpty;
-                  });
-                },
               ),
               actions: [
                 TextButton(
@@ -43,7 +114,10 @@ class HomeScreen extends StatelessWidget {
                             dialogContext,
                             listen: false,
                           );
-                          roomProvider.addRoom(controller.text.trim());
+                          roomProvider.addRoom(
+                            controller.text.trim(),
+                            imagePath: pickedImage?.path,
+                          );
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
                             const SnackBar(
@@ -65,164 +139,25 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Interior Decorator'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          Consumer<RoomProvider>(
-            builder: (context, provider, child) {
-              return IconButton(
-                icon: Icon(
-                  provider.showOnlyPlanning
-                      ? Icons.filter_alt
-                      : Icons.filter_alt_outlined,
-                ),
-                tooltip: provider.showOnlyPlanning
-                    ? 'Show All Rooms'
-                    : 'Show Only Planning',
-                onPressed: () {
-                  provider.toggleFilter();
-                },
-              );
-            },
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('AI Interior Decorator'),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'My Rooms', icon: Icon(Icons.home)),
+              Tab(text: 'Catalogs', icon: Icon(Icons.collections)),
+            ],
           ),
-        ],
-      ),
-      body: Consumer<RoomProvider>(
-        builder: (context, provider, child) {
-          final rooms = provider.filteredRooms;
-
-          if (rooms.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.home_outlined, size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    provider.showOnlyPlanning
-                        ? 'No rooms in planning'
-                        : 'No rooms yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap + to add a new room',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: rooms.length,
-            itemBuilder: (context, index) {
-              final room = rooms[index];
-              return Dismissible(
-                key: Key(room.id),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  child: const Icon(Icons.delete, color: Colors.white),
-                ),
-                direction: DismissDirection.endToStart,
-                onDismissed: (direction) {
-                  provider.deleteRoom(room.id);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${room.title} deleted'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                child: Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetailsScreen(roomId: room.id),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            child: Icon(
-                              room.isFurnished
-                                  ? Icons.weekend
-                                  : Icons.format_paint,
-                              key: ValueKey(room.isFurnished),
-                              color: room.isFurnished
-                                  ? Colors.green
-                                  : Colors.red,
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  room.title,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  room.isFurnished ? 'Furnished' : 'Planning',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: room.isFurnished
-                                        ? Colors.green[700]
-                                        : Colors.red[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              room.isFurnished
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              color: room.isFurnished
-                                  ? Colors.green
-                                  : Colors.grey,
-                            ),
-                            onPressed: () {
-                              provider.toggleFurnishedStatus(room.id);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddRoomDialog(context),
-        tooltip: 'Add Room',
-        child: const Icon(Icons.add),
+        ),
+        body: const TabBarView(children: [MyRoomsView(), CatalogListScreen()]),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddRoomDialog(context),
+          tooltip: 'Add Room',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/room_provider.dart';
 
@@ -6,6 +9,24 @@ class DetailsScreen extends StatelessWidget {
   final String roomId;
 
   const DetailsScreen({super.key, required this.roomId});
+
+  Widget _buildRoomImage(
+    String path, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    if (kIsWeb) {
+      return Image.network(
+        path,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+      );
+    }
+    return Image.file(File(path), width: width, height: height, fit: fit);
+  }
 
   void _showAddFurnitureDialog(BuildContext context) {
     final nameController = TextEditingController();
@@ -112,6 +133,22 @@ class DetailsScreen extends StatelessWidget {
             backgroundColor: Theme.of(context).colorScheme.inversePrimary,
             actions: [
               IconButton(
+                onPressed: () async {
+                  final ImagePicker picker = ImagePicker();
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (image != null) {
+                    Provider.of<RoomProvider>(
+                      context,
+                      listen: false,
+                    ).updateRoomImage(roomId, image.path);
+                  }
+                },
+                icon: const Icon(Icons.add_photo_alternate),
+                tooltip: 'Change room image',
+              ),
+              IconButton(
                 onPressed: () => _showAddFurnitureDialog(context),
                 icon: const Icon(Icons.add),
                 tooltip: 'Add furniture',
@@ -121,75 +158,65 @@ class DetailsScreen extends StatelessWidget {
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: room.isFurnished
-                      ? Colors.green.withAlpha(26)
-                      : Colors.red.withAlpha(26),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: room.isFurnished ? Colors.green : Colors.red,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      room.isFurnished ? Icons.weekend : Icons.format_paint,
-                      color: room.isFurnished ? Colors.green : Colors.red,
-                      size: 40,
-                    ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          room.title,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+              room.roomImagePath != null
+                  ? _buildRoomImage(
+                      room.roomImagePath!,
+                      height: 250,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: room.isFurnished
+                            ? Colors.green.withAlpha(26)
+                            : Colors.red.withAlpha(26),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: room.isFurnished ? Colors.green : Colors.red,
+                            width: 2,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          room.isFurnished
-                              ? 'Status: Furnished'
-                              : 'Status: Planning',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: room.isFurnished
-                                ? Colors.green[700]
-                                : Colors.red[700],
-                            fontWeight: FontWeight.w500,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            room.isFurnished
+                                ? Icons.weekend
+                                : Icons.format_paint,
+                            color: room.isFurnished ? Colors.green : Colors.red,
+                            size: 40,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.smart_toy,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'AI-Recommended Furniture & Deals',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                room.title,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                room.isFurnished
+                                    ? 'Status: Furnished'
+                                    : 'Status: Planning',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: room.isFurnished
+                                      ? Colors.green[700]
+                                      : Colors.red[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
               Expanded(
                 child: room.furniture.isEmpty
                     ? Center(
@@ -253,17 +280,42 @@ class DetailsScreen extends StatelessWidget {
                               elevation: 1,
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                                  child: Icon(
-                                    Icons.shopping_bag,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
+                                leading: item.imageUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          item.imageUrl!,
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return CircleAvatar(
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .primaryContainer,
+                                                  child: Icon(
+                                                    Icons.shopping_bag,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                  ),
+                                                );
+                                              },
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer,
+                                        child: Icon(
+                                          Icons.shopping_bag,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
                                 title: Text(
                                   item.name,
                                   style: const TextStyle(

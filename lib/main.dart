@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/room_provider.dart';
+import 'providers/catalog_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -12,8 +13,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => RoomProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => RoomProvider()),
+        ChangeNotifierProvider(create: (context) => CatalogProvider()),
+      ],
       child: MaterialApp(
         title: 'AI Interior Decorator',
         debugShowCheckedModeBanner: false,

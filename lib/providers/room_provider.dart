@@ -20,21 +20,20 @@ class RoomProvider with ChangeNotifier {
     return _rooms.firstWhere((room) => room.id == id);
   }
 
-  void addRoom(String title) {
+  void addRoom(String title, {String? imagePath}) {
     final newRoom = RoomProject(
       id: DateTime.now().toString(),
       title: title,
-      furniture: [
-        FurnitureItem(id: 'sofa', name: 'Sofa', store: 'IKEA', price: '\$299'),
-        FurnitureItem(
-          id: 'coffee_table',
-          name: 'Coffee Table',
-          store: 'IKEA',
-          price: '\$89',
-        ),
-      ],
+      roomImagePath: imagePath,
+      furniture: [],
     );
     _rooms.add(newRoom);
+    notifyListeners();
+  }
+
+  void updateRoomImage(String roomId, String imagePath) {
+    final room = getRoomById(roomId);
+    room.roomImagePath = imagePath;
     notifyListeners();
   }
 
@@ -54,6 +53,7 @@ class RoomProvider with ChangeNotifier {
     required String name,
     required String store,
     required String price,
+    String? imageUrl,
   }) {
     final room = getRoomById(roomId);
     room.furniture.add(
@@ -62,6 +62,7 @@ class RoomProvider with ChangeNotifier {
         name: name,
         store: store,
         price: price,
+        imageUrl: imageUrl,
       ),
     );
     notifyListeners();
