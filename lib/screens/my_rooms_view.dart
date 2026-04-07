@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/room_provider.dart';
+import '../widgets/edit_room_dialog.dart';
 import 'details_screen.dart';
 
 class MyRoomsView extends StatelessWidget {
@@ -59,7 +60,7 @@ class MyRoomsView extends StatelessWidget {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 80),
                       itemCount: rooms.length,
                       itemBuilder: (context, index) {
                         final room = rooms[index];
@@ -133,6 +134,18 @@ class MyRoomsView extends StatelessWidget {
                                       onPressed: () {
                                         provider.toggleFurnishedStatus(room.id);
                                       },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      onPressed: () {
+                                        EditRoomDialog.show(
+                                          context,
+                                          roomId: room.id,
+                                          currentTitle: room.title,
+                                          currentImagePath: room.roomImagePath,
+                                        );
+                                      },
+                                      tooltip: 'Edit room',
                                     ),
                                   ],
                                 ),

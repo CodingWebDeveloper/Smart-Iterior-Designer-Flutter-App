@@ -20,6 +20,9 @@ class FurnitureItem {
   final String store;
   final String price;
   final String? imageUrl;
+  final bool? _isBought;
+
+  bool get isBought => _isBought ?? false;
 
   FurnitureItem({
     required this.id,
@@ -27,7 +30,26 @@ class FurnitureItem {
     required this.store,
     required this.price,
     this.imageUrl,
-  });
+    bool? isBought,
+  }) : _isBought = isBought;
+
+  FurnitureItem copyWith({
+    String? id,
+    String? name,
+    String? store,
+    String? price,
+    String? imageUrl,
+    bool? isBought,
+  }) {
+    return FurnitureItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      store: store ?? this.store,
+      price: price ?? this.price,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isBought: isBought ?? this.isBought,
+    );
+  }
 }
 
 class FurnitureCatalog {

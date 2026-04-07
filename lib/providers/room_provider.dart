@@ -37,6 +37,19 @@ class RoomProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateRoom(String roomId, {String? title, String? imagePath, bool clearImage = false}) {
+    final room = getRoomById(roomId);
+    if (title != null) {
+      room.title = title;
+    }
+    if (clearImage) {
+      room.roomImagePath = null;
+    } else if (imagePath != null) {
+      room.roomImagePath = imagePath;
+    }
+    notifyListeners();
+  }
+
   void deleteRoom(String id) {
     _rooms.removeWhere((room) => room.id == id);
     notifyListeners();
@@ -68,9 +81,48 @@ class RoomProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateFurniture({
+    required String roomId,
+    required String furnitureId,
+    required String name,
+    required String store,
+    required String price,
+    String? imageUrl,
+  }) {
+    final room = getRoomById(roomId);
+    final index = room.furniture.indexWhere((item) => item.id == furnitureId);
+    if (index == -1) {
+      return;
+    }
+
+    final current = room.furniture[index];
+    room.furniture[index] = current.copyWith(
+      name: name,
+      store: store,
+      price: price,
+      imageUrl: imageUrl,
+    );
+    notifyListeners();
+  }
+
   void removeFurniture({required String roomId, required String furnitureId}) {
     final room = getRoomById(roomId);
     room.furniture.removeWhere((item) => item.id == furnitureId);
+    notifyListeners();
+  }
+
+  void toggleFurnitureBought({
+    required String roomId,
+    required String furnitureId,
+  }) {
+    final room = getRoomById(roomId);
+    final index = room.furniture.indexWhere((item) => item.id == furnitureId);
+    if (index == -1) {
+      return;
+    }
+
+    final current = room.furniture[index];
+    room.furniture[index] = current.copyWith(isBought: !current.isBought);
     notifyListeners();
   }
 
