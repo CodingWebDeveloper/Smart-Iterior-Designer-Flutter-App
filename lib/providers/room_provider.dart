@@ -2,7 +2,53 @@ import 'package:flutter/foundation.dart';
 import '../models/room_project.dart';
 
 class RoomProvider with ChangeNotifier {
-  final List<RoomProject> _rooms = [];
+  final List<RoomProject> _rooms = [
+    RoomProject(
+      id: 'room-1',
+      title: 'Modern Living Room',
+      isFurnished: false,
+      furniture: [
+        FurnitureItem(
+          id: 'furn-1',
+          name: 'Sectional Sofa',
+          store: 'IKEA',
+          price: '\$2,499',
+        ),
+      ],
+    ),
+    RoomProject(
+      id: 'room-2',
+      title: 'Cozy Bedroom',
+      isFurnished: true,
+      furniture: [
+        FurnitureItem(
+          id: 'furn-2',
+          name: 'Queen Bed Frame',
+          store: 'Wayfair',
+          price: '\$1,099',
+        ),
+        FurnitureItem(
+          id: 'furn-3',
+          name: 'Nightstand',
+          store: 'Target',
+          price: '\$349',
+        ),
+      ],
+    ),
+    RoomProject(
+      id: 'room-3',
+      title: 'Scandinavian Kitchen',
+      isFurnished: false,
+      furniture: [
+        FurnitureItem(
+          id: 'furn-4',
+          name: 'Dining Table',
+          store: 'Crate & Barrel',
+          price: '\$1,799',
+        ),
+      ],
+    ),
+  ];
   bool _showOnlyPlanning = false;
 
   List<RoomProject> get rooms => _rooms;
@@ -37,7 +83,12 @@ class RoomProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateRoom(String roomId, {String? title, String? imagePath, bool clearImage = false}) {
+  void updateRoom(
+    String roomId, {
+    String? title,
+    String? imagePath,
+    bool clearImage = false,
+  }) {
     final room = getRoomById(roomId);
     if (title != null) {
       room.title = title;
